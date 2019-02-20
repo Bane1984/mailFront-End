@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using MailKit.Net.Pop3;
 using Microsoft.AspNetCore.Mvc;
@@ -20,48 +21,47 @@ namespace mail.Controllers
             _emailConfiguration = emailConfiguration;
         }
 
-        [HttpGet("receiveEmail")]
-        public List<EmailMessage> ReceiveEmail(int maxCount = 10)
-        {
-            using (var emailClient = new Pop3Client())
-            {
-                emailClient.Connect(_emailConfiguration.PopServer, _emailConfiguration.PopPort, true);
+        //[HttpGet("receiveEmail")]
+        //public List<EmailMessage> ReceiveEmail(int maxCount = 10)
+        //{
+        //    using (var emailClient = new Pop3Client())
+        //    {
+        //        emailClient.Connect(_emailConfiguration.PopServer, _emailConfiguration.PopPort, true);
 
-                emailClient.AuthenticationMechanisms.Remove("XOAUTH2");
+        //        emailClient.AuthenticationMechanisms.Remove("XOAUTH2");
 
-                emailClient.Authenticate(_emailConfiguration.PopUsername, _emailConfiguration.PopPassword);
+        //        emailClient.Authenticate(_emailConfiguration.PopUsername, _emailConfiguration.PopPassword);
 
-                List<EmailMessage> emails = new List<EmailMessage>();
-                for (int i = 0; i < emailClient.Count && i < maxCount; i++)
-                {
-                    var message = emailClient.GetMessage(i);
-                    var emailMessage = new EmailMessage
-                    {
-                        Message = !string.IsNullOrEmpty(message.HtmlBody) ? message.HtmlBody : message.TextBody,
-                        Subject = message.Subject
-                    };
-                    emailMessage.ToAddresses.AddRange(message.To.Select(x => (MailboxAddress)x)
-                        .Select(x => new EmailAddress { Address = x.Address, Name = x.Name }));
-                    emailMessage.FromAddresses.AddRange(message.From.Select(x => (MailboxAddress)x)
-                        .Select(x => new EmailAddress { Address = x.Address, Name = x.Name }));
-                    emailMessage.CcAddresses.AddRange(message.Cc.Select(x => (MailboxAddress)x)
-                        .Select(x => new EmailAddress { Address = x.Address, Name = x.Name }));
-                    emailMessage.BccAddresses.AddRange(message.Bcc.Select(x => (MailboxAddress)x)
-                        .Select(x => new EmailAddress { Address = x.Address, Name = x.Name }));
-                }
+        //        List<EmailMessage> emails = new List<EmailMessage>();
+        //        for (int i = 0; i < emailClient.Count && i < maxCount; i++)
+        //        {
+        //            var message = emailClient.GetMessage(i);
+        //            var emailMessage = new EmailMessage
+        //            {
+        //                Message = !string.IsNullOrEmpty(message.HtmlBody) ? message.HtmlBody : message.TextBody,
+        //                Subject = message.Subject
+        //            };
+        //            emailMessage.To.AddRange(message.To.Select(x => (MailboxAddress)x)
+        //                .Select(x => new EmailAddress { Email = x.Address}));
+        //            emailMessage.Cc.AddRange(message.Cc.Select(x => (MailboxAddress)x)
+        //                .Select(x => new EmailAddress { Email = x.Address}));
+        //            emailMessage.Bcc.AddRange(message.Bcc.Select(x => (MailboxAddress)x)
+        //                .Select(x => new EmailAddress { Email = x.Address}));
+        //        }
 
-                return emails;
-            }
-        }
+        //        return emails;
+        //    }
+        //}
 
         [HttpPost("send")]
         public void Send(EmailMessage emailMessage)
         {
+           
             var message = new MimeMessage();
-            message.To.AddRange(emailMessage.ToAddresses.Select(c => new MailboxAddress(c.Name, c.Address)));
-            message.Cc.AddRange(emailMessage.CcAddresses.Select(c => new MailboxAddress(c.Name, c.Address)));
-            message.Bcc.AddRange(emailMessage.BccAddresses.Select(c => new MailboxAddress(c.Name, c.Address)));
-            message.From.AddRange(emailMessage.FromAddresses.Select(c => new MailboxAddress(c.Name, c.Address)));
+            message.From.Add(new MailboxAddress(emailMessage.Email, emailMessage.Name));
+            message.To.AddRange(emailMessage.To.Select(c => new MailboxAddress(c.Email)));
+            message.Cc.AddRange(emailMessage.Cc.Select(c => new MailboxAddress(c.Email)));
+            message.Bcc.AddRange(emailMessage.Bcc.Select(c => new MailboxAddress(c.Email)));
 
             message.Subject = emailMessage.Subject;
 
@@ -69,7 +69,7 @@ namespace mail.Controllers
             {
                 Text = emailMessage.Message
             };
-
+            
             using (var emailClient = new MailKit.Net.Smtp.SmtpClient())
             {
                 //emailClient.Connect(_emailConfiguration.SmtpServer, _emailConfiguration.SmtpPort, true);
@@ -80,6 +80,8 @@ namespace mail.Controllers
                 emailClient.Send(message);
                 emailClient.Disconnect(true);
             }
+
         }
+
     }
 }
