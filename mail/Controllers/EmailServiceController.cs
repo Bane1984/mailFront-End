@@ -7,10 +7,13 @@ using MimeKit;
 using MimeKit.Text;
 using mail.Interfaces;
 using mail.Models;
+using Microsoft.AspNetCore.Cors;
 
 namespace mail.Controllers
 {
+    
     [Route("api/[controller]")]
+    [EnableCors("AllowCors")]
     [ApiController]
     public class EmailServiceController : IEmailService
     {

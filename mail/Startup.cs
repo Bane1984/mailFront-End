@@ -33,9 +33,11 @@ namespace mail
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+            services.AddCors(options => options.AddPolicy("AllowCors", builder => { builder.AllowAnyOrigin().WithMethods("POST").AllowAnyHeader(); }));
             services.AddDbContext<mailContext>(opts => opts.UseSqlServer(Configuration["ConnectionString:mailDB"]));
             services.AddSingleton<IEmailConfiguration>(Configuration.GetSection("EmailConfiguration").Get<EmailConfiguration>());
             services.AddTransient<IEmailService, EmailServiceController>();
+            
 
             services.AddSwaggerGen(c =>
             {
@@ -85,7 +87,7 @@ namespace mail
                 c.SwaggerEndpoint("./swagger/v1/swagger.json", "My API V1");
                 c.RoutePrefix = string.Empty;
             });
-
+            app.UseCors("AllowCors");
             app.UseHttpsRedirection();
             app.UseMvc();
         }
