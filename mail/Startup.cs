@@ -17,6 +17,7 @@ using Swashbuckle.AspNetCore.Swagger;
 using mail.Controllers;
 using mail.Interfaces;
 using mail.Models;
+using mail.Extensions;
 
 namespace mail
 {
@@ -33,9 +34,14 @@ namespace mail
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
-            services.AddCors(options => options.AddPolicy("AllowCors", builder => { builder.AllowAnyOrigin().WithMethods("POST").AllowAnyHeader(); }));
+            //services.AddCors(options => options.AddPolicy("AllowCors", builder => { builder.AllowAnyOrigin().WithMethods("POST").AllowAnyHeader(); }));
+
+            var config = Configuration.GetSection("CORSConfiguration").Get<CORSConfiguration>();
+            services.ConfigureCors(config);
+
             services.AddDbContext<mailContext>(opts => opts.UseSqlServer(Configuration["ConnectionString:mailDB"]));
             services.AddSingleton<IEmailConfiguration>(Configuration.GetSection("EmailConfiguration").Get<EmailConfiguration>());
+            services.AddSingleton<ICORSConfiguration>(config);
             services.AddTransient<IEmailService, EmailServiceController>();
             
 

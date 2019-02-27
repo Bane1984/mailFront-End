@@ -8,6 +8,9 @@ using MimeKit.Text;
 using mail.Interfaces;
 using mail.Models;
 using Microsoft.AspNetCore.Cors;
+using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.EntityFrameworkCore;
+using Org.BouncyCastle.Utilities.Collections;
 
 namespace mail.Controllers
 {
@@ -18,10 +21,12 @@ namespace mail.Controllers
     public class EmailServiceController : IEmailService
     {
         public readonly IEmailConfiguration _emailConfiguration;
+        public readonly ICORSConfiguration _corsConfiguration;
 
-        public EmailServiceController(IEmailConfiguration emailConfiguration)
+        public EmailServiceController(IEmailConfiguration emailConfiguration, ICORSConfiguration corsConfiguration)
         {
             _emailConfiguration = emailConfiguration;
+            _corsConfiguration = corsConfiguration;
         }
 
         //[HttpGet("receiveEmail")]
@@ -72,7 +77,7 @@ namespace mail.Controllers
             {
                 Text = emailMessage.Message
             };
-            
+
             using (var emailClient = new MailKit.Net.Smtp.SmtpClient())
             {
                 //emailClient.Connect(_emailConfiguration.SmtpServer, _emailConfiguration.SmtpPort, true);
@@ -80,6 +85,7 @@ namespace mail.Controllers
                 //emailClient.Connect("smtp.gmail.com", 587, MailKit.Security.SecureSocketOptions.SslOnConnect);
                 emailClient.AuthenticationMechanisms.Remove("XOAUTH2");
                 emailClient.Authenticate(_emailConfiguration.SmtpUsername, _emailConfiguration.SmtpPassword);
+                //emailClient.
                 emailClient.Send(message);
                 emailClient.Disconnect(true);
             }

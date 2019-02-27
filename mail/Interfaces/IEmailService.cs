@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using mail.Models;
 using Microsoft.IdentityModel.Tokens;
-using mail.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace mail.Interfaces
