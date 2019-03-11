@@ -43,7 +43,10 @@ namespace mail
             services.AddSingleton<IEmailConfiguration>(Configuration.GetSection("EmailConfiguration").Get<EmailConfiguration>());
             services.AddSingleton<ICORSConfiguration>(config);
             services.AddTransient<IEmailService, EmailServiceController>();
-            
+
+            services.Configure<RecaptchaSettings>(Configuration.GetSection("RecaptchaSettings"));
+            services.AddTransient<IRecaptchaService, RecaptchaServiceController>();
+
 
             services.AddSwaggerGen(c =>
             {
