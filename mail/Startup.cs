@@ -42,10 +42,10 @@ namespace mail
             services.AddDbContext<mailContext>(opts => opts.UseSqlServer(Configuration["ConnectionString:mailDB"]));
             services.AddSingleton<IEmailConfiguration>(Configuration.GetSection("EmailConfiguration").Get<EmailConfiguration>());
             services.AddSingleton<ICORSConfiguration>(config);
-            services.AddTransient<IEmailService, EmailServiceController>();
+            //services.AddTransient<IEmailService, EmailServiceController>();
 
             services.Configure<RecaptchaSettings>(Configuration.GetSection("RecaptchaSettings"));
-            services.AddTransient<IRecaptchaService, RecaptchaServiceController>();
+            //services.AddTransient<IRecaptchaService, RecaptchaServiceController>();
 
 
             services.AddSwaggerGen(c =>

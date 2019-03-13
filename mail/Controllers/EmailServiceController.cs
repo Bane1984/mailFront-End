@@ -11,6 +11,10 @@ using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Org.BouncyCastle.Utilities.Collections;
+using System.Net.Http;
+using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
+
 
 namespace mail.Controllers
 {
@@ -18,10 +22,12 @@ namespace mail.Controllers
     [Route("api/[controller]")]
     [EnableCors("AllowCors")]
     [ApiController]
-    public class EmailServiceController : IEmailService
+    public class EmailServiceController : Controller
     {
-        public readonly IEmailConfiguration _emailConfiguration;
-        public readonly ICORSConfiguration _corsConfiguration;
+        private readonly IEmailConfiguration _emailConfiguration;
+        private readonly ICORSConfiguration _corsConfiguration;
+        public static HttpClient Client { get; private set; }
+        public readonly RecaptchaSettings RecaptchaSettings;
 
         public EmailServiceController(IEmailConfiguration emailConfiguration, ICORSConfiguration corsConfiguration)
         {
@@ -64,31 +70,40 @@ namespace mail.Controllers
         [HttpPost("send")]
         public void Send(EmailMessage emailMessage)
         {
-           
-            var message = new MimeMessage();
-            message.From.Add(new MailboxAddress(emailMessage.Email, emailMessage.Name));
-            message.To.AddRange(emailMessage.To.Select(c => new MailboxAddress(c.Email)));
-            message.Cc.AddRange(emailMessage.Cc.Select(c => new MailboxAddress(c.Email)));
-            message.Bcc.AddRange(emailMessage.Bcc.Select(c => new MailboxAddress(c.Email)));
+            var request = Request.Form["g-recaptcha-response"];
+            var response = request.ToString();
+            HttpClient client = new HttpClient();
+            var result = client.GetStringAsync($"https://www.google.com/recaptcha/api/siteverify?secret={RecaptchaSettings.SecretKey}&response={response}").Result;
+            var captchaResponse = JsonConvert.DeserializeObject<RecaptchaResponse>(result);
 
-            message.Subject = emailMessage.Subject;
-
-            message.Body = new TextPart(TextFormat.Html)
+            if (captchaResponse.Success == true)
             {
-                Text = emailMessage.Message
-            };
+                var message = new MimeMessage();
+                message.From.Add(new MailboxAddress(emailMessage.Email, emailMessage.Name));
+                message.To.AddRange(emailMessage.To.Select(c => new MailboxAddress(c.Email)));
+                message.Cc.AddRange(emailMessage.Cc.Select(c => new MailboxAddress(c.Email)));
+                message.Bcc.AddRange(emailMessage.Bcc.Select(c => new MailboxAddress(c.Email)));
 
-            using (var emailClient = new MailKit.Net.Smtp.SmtpClient())
-            {
-                //emailClient.Connect(_emailConfiguration.SmtpServer, _emailConfiguration.SmtpPort, true);
-                emailClient.Connect("smtp.gmail.com", 465);
-                //emailClient.Connect("smtp.gmail.com", 587, MailKit.Security.SecureSocketOptions.SslOnConnect);
-                emailClient.AuthenticationMechanisms.Remove("XOAUTH2");
-                emailClient.Authenticate(_emailConfiguration.SmtpUsername, _emailConfiguration.SmtpPassword);
-                //emailClient.
-                emailClient.Send(message);
-                emailClient.Disconnect(true);
+                message.Subject = emailMessage.Subject;
+
+                message.Body = new TextPart(TextFormat.Html)
+                {
+                    Text = emailMessage.Message
+                };
+
+                using (var emailClient = new MailKit.Net.Smtp.SmtpClient())
+                {
+                    //emailClient.Connect(_emailConfiguration.SmtpServer, _emailConfiguration.SmtpPort, true);
+                    emailClient.Connect("smtp.gmail.com", 465);
+                    //emailClient.Connect("smtp.gmail.com", 587, MailKit.Security.SecureSocketOptions.SslOnConnect);
+                    emailClient.AuthenticationMechanisms.Remove("XOAUTH2");
+                    emailClient.Authenticate(_emailConfiguration.SmtpUsername, _emailConfiguration.SmtpPassword);
+                    emailClient.Send(message);
+                    emailClient.Disconnect(true);
+                }
             }
+
+            throw new Exception("Poruka nije poslata, recaptcha nije validan!");
 
         }
 
